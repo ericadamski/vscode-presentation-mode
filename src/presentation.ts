@@ -70,9 +70,9 @@ export default class Presentation {
 
   static next(): void {
     if (this.isPresenting()) {
-      if (++this.index <= Object.keys(this.slides).length - 1)
+      if (this.index + 1 <= Object.keys(this.slides).length - 1)
         return this.presentation$.next({
-          index: this.index,
+          index: this.index + 1,
           direction: DIRECTIONS.RIGHT,
         });
 
@@ -83,7 +83,7 @@ export default class Presentation {
   static previous(): void {
     this.isPresenting() &&
       this.presentation$.next({
-        index: (this.index = Math.max(0, this.index - 1)),
+        index: Math.max(0, this.index - 1),
         direction: DIRECTIONS.LEFT,
       });
   }
@@ -100,12 +100,17 @@ export default class Presentation {
 
     return (this.presentation$ || (this.presentation$ = new Subject()))
       .pipe(
+        filter(({ index }) => index !== this.index),
         tap(
           ({ index, direction }): void => {
+            this.index = index;
+
             progress.report({
               increment: direction * ((index + 1) * (100 / length)),
               message: `${index + 1}/${length}`,
             });
+
+            console.log(workspace.textDocuments);
 
             this.slides[this.order[index]].open();
           }

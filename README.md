@@ -1,65 +1,37 @@
-# ericadamski-presentation-mode README
+# Presentation Mode
 
-This is the README for your extension "ericadamski-presentation-mode". After writing up a brief description, we recommend including the following sections.
+Based on [this](https://staltz.com/your-ide-as-a-presentation-tool.html) post by André Staltz, here is a vscode extension that allows you to treat your editor more like a presentation tool.
 
-## Features
+![presentation-mode](https://user-images.githubusercontent.com/6516758/41659016-25da1c74-7466-11e8-99da-bec485d954c4.gif)
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+## Usage
 
-For example if there is an image subfolder under your extension project workspace:
+This extension looks for files that start with numbers to that it can determine an order to your presentation. For example, here is a presentation with 3 slides:
 
-\!\[feature X\]\(images/feature-x.png\)
+```
+presentation
+├── 1-hello.md
+├── 2-me.png
+└── 3-thank-you.js
+```
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+1.  To start a presentation type `present` into the command palette (`⌘+SHIFT+P`). **This will take a little while to load as it searches your open project for fiels matching the above pattern and orders the slides** 😢
+2.  Once everything is loaded you can navigate the next and previous slides with `CTRL+SHIFT+⌘` and the arrow key for the direction you which to go.
 
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+**Note:** If you go past the end of the slides the presentation mode is automatically ended. You can manually canel the presentation by running the `End Presentation` command or clicking cancel on the progress notification.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+- `presentationMode.colorTheme`: The color theme to use when presenting
 
-For example:
+### Editor Settings
 
-This extension contributes the following settings:
+- `presentationMode.editor.fontSize`: The size of the editor font when presenting
+- `presentationMode.editor.fontWeight`: The weight of the editor font when presenting
+- `presentationMode.editor.fontFamily`: The family of the font for the editor when presenting
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+### Terminal Settings
 
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on OSX or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on OSX or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (OSX) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- `presentationMode.terminal.fontSize`: The size of the terminal font when presenting
+- `presentationMode.terminal.fontWeight`: The weight of the terminal font when presenting
+- `presentationMode.terminal.fontFamily`: The family of the font for the terminal when presenting

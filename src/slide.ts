@@ -1,4 +1,4 @@
-import { TextEditor, window, workspace } from 'vscode';
+import { commands, Uri } from 'vscode';
 
 export default class Slide {
   fileName: string;
@@ -14,9 +14,9 @@ export default class Slide {
     this.index = number;
   }
 
-  open(): Thenable<TextEditor> {
-    return workspace
-      .openTextDocument(this.fileName)
-      .then(file => window.showTextDocument(file));
+  open(): Thenable<any> {
+    const uri = Uri.parse(`file://${this.fileName}`);
+
+    return commands.executeCommand('vscode.open', uri);
   }
 }
