@@ -1,6 +1,6 @@
 # Presentation Mode
 
-Based on [this](https://staltz.com/your-ide-as-a-presentation-tool.html) post by André Staltz, here is a vscode extension that allows you to treat your editor more like a presentation tool.
+Inspired by [this](https://staltz.com/your-ide-as-a-presentation-tool.html) post by André Staltz, here is a vscode extension that allows you to treat your editor more like a presentation tool.
 
 ![presentation-mode](https://user-images.githubusercontent.com/6516758/41659016-25da1c74-7466-11e8-99da-bec485d954c4.gif)
 
