@@ -7,6 +7,7 @@
   "engines": {
     "vscode": "^1.24.0"
   },
+  "repository": "git@github.com:ericadamski/vscode-presentation-mode.git",
   "categories": [
     "Other"
   ],
