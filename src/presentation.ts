@@ -1,6 +1,8 @@
-import { from, fromEventPattern, Subject } from 'rxjs';
+import { readdir } from 'fs';
+import { basename, join } from 'path';
+import { bindNodeCallback, fromEventPattern, Subject } from 'rxjs';
 import { filter, map, mapTo, switchAll, takeUntil, tap } from 'rxjs/operators';
-import { CancellationToken, Progress, window, workspace } from 'vscode';
+import { CancellationToken, Progress, Uri, window, workspace } from 'vscode';
 import activityBar from './activity-bar';
 import editor from './editor';
 import minimap from './minimap';
@@ -10,6 +12,8 @@ import statusBar from './status-bar';
 import tabs from './tabs';
 import terminal from './terminal';
 import ws from './workspace';
+
+const readDir = bindNodeCallback(readdir);
 
 const ogConfig = workspace.getConfiguration('', null);
 const toggles = [activityBar, minimap, sidebar, statusBar, tabs].map(fn =>
@@ -22,6 +26,7 @@ const DIRECTIONS = { LEFT: -1, RIGHT: 1 };
 export default class Presentation {
   static slides: { [key: number]: Slide } = {};
   static order: Array<string>;
+  static presentationLength: number;
   static index: number = 0;
   static presentation$ = null;
   private static started: boolean = false;
@@ -41,27 +46,38 @@ export default class Presentation {
     startStop.forEach(({ stop }) => stop());
   }
 
-  static initialize() {
+  static initialize(): Promise<void> {
     return new Promise(resolve =>
-      from(workspace.findFiles('*.*'))
+      readDir(workspace.rootPath)
         .pipe(
           switchAll(),
+          map((p: string) => Uri.parse(join(workspace.rootPath, p))),
           map(uri => {
-            const p = uri.toJSON().fsPath.split('/');
+            const name = basename(uri.toJSON().fsPath).split('.');
 
             return {
               path: uri.toJSON().fsPath,
-              name: p[Math.max(0, p.length - 1)],
+              ext: name.pop(),
+              name: name.join('.'),
             };
           }),
-          filter(({ name }) => name.charAt(0) !== '.'),
-          filter(({ name }) => !isNaN(+name.charAt(0))),
-          map(({ name, path }) => ({ name, path, number: +name.charAt(0) }))
+          filter(({ name }) => name !== '' && !isNaN(+name)),
+          map(({ name, path }) => ({ name, path, number: +name }))
         )
         .subscribe({
           next: slide => (this.slides[slide.number] = new Slide(slide)),
           complete: () => {
-            this.order = Object.keys(this.slides).sort();
+            this.order = Object.keys(this.slides).sort((a, b) => {
+              const x = +a;
+              const y = +b;
+
+              if (x > y) return 1;
+              if (x < y) return -1;
+
+              return 0;
+            });
+
+            this.presentationLength = this.order.length;
             resolve();
           },
         })
@@ -70,7 +86,7 @@ export default class Presentation {
 
   static next(): void {
     if (this.isPresenting()) {
-      if (this.index + 1 <= Object.keys(this.slides).length - 1)
+      if (this.index + 1 <= this.presentationLength - 1)
         return this.presentation$.next({
           index: this.index + 1,
           direction: DIRECTIONS.RIGHT,
@@ -92,7 +108,6 @@ export default class Presentation {
     progress: Progress<{ increment: number; message: string }>,
     cancelToken: CancellationToken
   ): Thenable<void> {
-    const length = Object.keys(this.slides).length;
     this.started = true;
     toggles.forEach(({ toggle }) => toggle());
     startStop.forEach(({ start }) => start());
@@ -106,11 +121,10 @@ export default class Presentation {
             this.index = index;
 
             progress.report({
-              increment: direction * ((index + 1) * (100 / length)),
-              message: `${index + 1}/${length}`,
+              increment:
+                direction * ((index + 1) * (100 / this.presentationLength)),
+              message: `${index + 1}/${this.presentationLength}`,
             });
-
-            console.log(workspace.textDocuments);
 
             this.slides[this.order[index]].open();
           }

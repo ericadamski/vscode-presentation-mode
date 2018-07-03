@@ -2,7 +2,7 @@
   "name": "presentation-mode",
   "displayName": "presentation-mode",
   "description": "An extension that helps you present conference talks directly from vscode",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "ericadamski",
   "engines": {
     "vscode": "^1.24.0"
