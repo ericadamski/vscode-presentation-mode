@@ -1,8 +1,24 @@
-import { readdir } from 'fs';
-import { basename, join } from 'path';
-import { bindNodeCallback, fromEventPattern, Subject } from 'rxjs';
-import { filter, map, mapTo, switchAll, takeUntil, tap } from 'rxjs/operators';
-import { CancellationToken, Progress, Uri, window, workspace } from 'vscode';
+import { readdir, rename, writeFile } from 'fs';
+import { basename, dirname, join } from 'path';
+import { bindNodeCallback, from, fromEventPattern, Subject } from 'rxjs';
+import {
+  concatMap,
+  filter,
+  map,
+  mapTo,
+  switchAll,
+  takeUntil,
+  tap,
+  toArray,
+} from 'rxjs/operators';
+import {
+  CancellationToken,
+  Progress,
+  TextEditor,
+  Uri,
+  window,
+  workspace,
+} from 'vscode';
 import activityBar from './activity-bar';
 import editor from './editor';
 import minimap from './minimap';
@@ -14,6 +30,8 @@ import terminal from './terminal';
 import ws from './workspace';
 
 const readDir = bindNodeCallback(readdir);
+const write = bindNodeCallback(writeFile);
+const move = bindNodeCallback(rename);
 
 const ogConfig = workspace.getConfiguration('', null);
 const toggles = [activityBar, minimap, sidebar, statusBar, tabs].map(fn =>
@@ -39,6 +57,83 @@ export default class Presentation {
       );
 
     return true;
+  }
+
+  private static getCurrentUri(): Uri {
+    const e: TextEditor = window.activeTextEditor;
+
+    return e && e.document.uri;
+  }
+
+  private static move(uri: Uri) {
+    const { number, ext } = this.getExtensionAndNumber(uri);
+
+    console.log(
+      `renaming ${uri.fsPath} to ${join(
+        dirname(uri.fsPath),
+        `${number + 1}.${ext}`
+      )}`
+    );
+
+    return [];
+    // return move(uri.fsPath, join(workspace.rootPath, `${number + 1}.${ext}`));
+  }
+
+  private static getExtensionAndNumber(
+    uri: Uri
+  ): { ext: string; number: number } {
+    const { fsPath } = uri.toJSON();
+    const name = basename(fsPath).split('.');
+    const ext = name.pop(); // remove extension
+    const number = +name.join('');
+
+    return { ext, number };
+  }
+
+  static async addSlide(uri: Uri) {
+    const location: Uri = uri || this.getCurrentUri();
+
+    if (!location)
+      return window.showErrorMessage(
+        'Could not find a file to add a slide after.'
+      );
+
+    let found = false;
+
+    await readDir(workspace.rootPath)
+      .pipe(
+        switchAll(),
+        map((p: string) => Uri.parse(join(workspace.rootPath, p))),
+        toArray(),
+        concatMap((uris: Uri[]) =>
+          from(uris).pipe(
+            filter(uri => found || uri.path === location.fsPath),
+            concatMap((uri: Uri) => {
+              found = true;
+              const { number, ext } = this.getExtensionAndNumber(uri);
+
+              console.log(number, isNaN(number));
+
+              if (!isNaN(number)) return [false];
+
+              console.log(number, ext, uri.fsPath, location.fsPath);
+
+              if (uri.fsPath === location.fsPath)
+                return write(
+                  join(workspace.rootPath, `${number + 1}.new.slide`),
+                  ''
+                );
+
+              return this.move(uri);
+            })
+          )
+        )
+      )
+      .toPromise();
+    // grab all the files
+    // get the file that is currently open and get its index
+    // add a new file with the index + 2 (1 based index) with the extension `.new.slide`
+    // modify each filename with a +1 to the names
   }
 
   static deactivate() {
