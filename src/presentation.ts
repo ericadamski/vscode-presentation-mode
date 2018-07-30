@@ -1,6 +1,12 @@
 import { readdir, rename, writeFile } from 'fs';
-import { basename, dirname, join } from 'path';
-import { bindNodeCallback, from, fromEventPattern, Subject } from 'rxjs';
+import { basename, join } from 'path';
+import {
+  bindNodeCallback,
+  from,
+  fromEventPattern,
+  Observable,
+  Subject,
+} from 'rxjs';
 import {
   concatMap,
   filter,
@@ -11,6 +17,7 @@ import {
   tap,
   toArray,
 } from 'rxjs/operators';
+import trace from 'rxtrace';
 import {
   CancellationToken,
   Progress,
@@ -65,25 +72,18 @@ export default class Presentation {
     return e && e.document.uri;
   }
 
-  private static move(uri: Uri) {
+  private static move(uri: Uri): Observable<void> {
     const { number, ext } = this.getExtensionAndNumber(uri);
+    ``;
 
-    console.log(
-      `renaming ${uri.fsPath} to ${join(
-        dirname(uri.fsPath),
-        `${number + 1}.${ext}`
-      )}`
-    );
-
-    return [];
-    // return move(uri.fsPath, join(workspace.rootPath, `${number + 1}.${ext}`));
+    return move(uri.fsPath, join(workspace.rootPath, `${number + 1}.${ext}`));
   }
 
   private static getExtensionAndNumber(
     uri: Uri
   ): { ext: string; number: number } {
-    const { fsPath } = uri.toJSON();
-    const name = basename(fsPath).split('.');
+    const { fsPath, path } = uri.toJSON();
+    const name = basename(fsPath || path).split('.');
     const ext = name.pop(); // remove extension
     const number = +name.join('');
 
@@ -102,21 +102,25 @@ export default class Presentation {
 
     await readDir(workspace.rootPath)
       .pipe(
+        map((paths: string[]) =>
+          paths
+            .filter((p: string) => {
+              let number;
+
+              return !isNaN(+(number = p.split('.').shift())) && number !== '';
+            })
+            .sort(this.sortFiles((p: string): number => +p.split('.').shift()))
+        ),
+        trace('list'),
         switchAll(),
         map((p: string) => Uri.parse(join(workspace.rootPath, p))),
+        filter(uri => found || uri.path === location.fsPath),
+        tap(() => (found = true)),
         toArray(),
         concatMap((uris: Uri[]) =>
-          from(uris).pipe(
-            filter(uri => found || uri.path === location.fsPath),
+          from(uris.reverse()).pipe(
             concatMap((uri: Uri) => {
-              found = true;
-              const { number, ext } = this.getExtensionAndNumber(uri);
-
-              console.log(number, isNaN(number));
-
-              if (!isNaN(number)) return [false];
-
-              console.log(number, ext, uri.fsPath, location.fsPath);
+              const { number } = this.getExtensionAndNumber(uri);
 
               if (uri.fsPath === location.fsPath)
                 return write(
@@ -130,15 +134,25 @@ export default class Presentation {
         )
       )
       .toPromise();
-    // grab all the files
-    // get the file that is currently open and get its index
-    // add a new file with the index + 2 (1 based index) with the extension `.new.slide`
-    // modify each filename with a +1 to the names
   }
 
   static deactivate() {
     toggles.forEach(({ toggle }) => toggle());
     startStop.forEach(({ stop }) => stop());
+  }
+
+  static sortFiles(
+    convertToInt: (any) => number = x => +x
+  ): (a: any, b: any) => -1 | 0 | 1 {
+    return function sort(a: any, b: any): -1 | 0 | 1 {
+      const x = convertToInt(a);
+      const y = convertToInt(b);
+
+      if (x > y) return 1;
+      if (x < y) return -1;
+
+      return 0;
+    };
   }
 
   static initialize(): Promise<void> {
@@ -162,15 +176,7 @@ export default class Presentation {
         .subscribe({
           next: slide => (this.slides[slide.number] = new Slide(slide)),
           complete: () => {
-            this.order = Object.keys(this.slides).sort((a, b) => {
-              const x = +a;
-              const y = +b;
-
-              if (x > y) return 1;
-              if (x < y) return -1;
-
-              return 0;
-            });
+            this.order = Object.keys(this.slides).sort(this.sortFiles());
 
             this.presentationLength = this.order.length;
             resolve();
