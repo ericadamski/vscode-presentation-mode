@@ -74,7 +74,6 @@ export default class Presentation {
 
   private static move(uri: Uri): Observable<void> {
     const { number, ext } = this.getExtensionAndNumber(uri);
-    ``;
 
     return move(uri.fsPath, join(workspace.rootPath, `${number + 1}.${ext}`));
   }
