@@ -17,7 +17,6 @@ import {
   tap,
   toArray,
 } from 'rxjs/operators';
-import trace from 'rxtrace';
 import {
   CancellationToken,
   Progress,
@@ -110,7 +109,6 @@ export default class Presentation {
             })
             .sort(this.sortFiles((p: string): number => +p.split('.').shift()))
         ),
-        trace('list'),
         switchAll(),
         map((p: string) => Uri.parse(join(workspace.rootPath, p))),
         filter(uri => found || uri.path === location.fsPath),
