@@ -21,6 +21,13 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand(
+      'presentation.addSlide',
+      Presentation.addSlide.bind(Presentation)
+    )
+  );
+
+  context.subscriptions.push(
+    commands.registerCommand(
       'presentation.next',
       Presentation.next.bind(Presentation)
     )
