@@ -119,6 +119,8 @@ export default class Presentation {
             concatMap((uri: Uri) => {
               const { number } = this.getExtensionAndNumber(uri);
 
+              if (isNaN(number)) return [];
+
               if (uri.fsPath === location.fsPath)
                 return write(
                   join(workspace.rootPath, `${number + 1}.new.slide`),
@@ -158,11 +160,11 @@ export default class Presentation {
         .pipe(
           switchAll(),
           map((p: string) => Uri.parse(join(workspace.rootPath, p))),
-          map(uri => {
-            const name = basename(uri.toJSON().fsPath).split('.');
+          map((uri: Uri) => {
+            const name = basename(uri.path).split('.');
 
             return {
-              path: uri.toJSON().fsPath,
+              path: uri.path,
               ext: name.pop(),
               name: name.join('.'),
             };
